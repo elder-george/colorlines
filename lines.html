@@ -7,16 +7,10 @@
             }
         </style>
 
-        <script>
-            function Game(size){
-                var canvas = document.getElementById('canvas');
-                var ctx = canvas.getContext('2d');
-                this.start = function(){
-                };
-            }
+        <script src="Lines.js">
         </script>
     </head>
-    <body onload="new Game(10).start()">
+    <body onload="Lines.main()">
         <canvas id="canvas" width='400' height='400'>
         You need browser with canvas support.
         </canvas>
