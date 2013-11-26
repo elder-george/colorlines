@@ -81,6 +81,8 @@ module Lines{
             this.onCellClickImpl = this.selectBall;
         }
 
+        public BallsRemoved: (number)=>void;
+
         private randomColor(){
             var colors = [];
             for(var i in Color){
@@ -253,16 +255,17 @@ module Lines{
                     i++;
                 } else {
                     this._board[this._selected.y][this._selected.x] = this._selected.stopBouncing();
-                    this.checkLines(this._selected.x, this._selected.y);
+                    var ballsRemoved = this.checkLines(this._selected.x, this._selected.y);
                     this._selected = null;
                     this.update = oldUpdate;
                     this.onCellClickImpl = this.selectBall;
-                    this.spawnBalls();
+                    if (!ballsRemoved || SPAWN_AFTER_LINE_REMOVAL)
+                        this.spawnBalls();
                 }
             }
         }
 
-        private checkLines(ox:number, oy:number){
+        private checkLines(ox:number, oy:number): boolean{
             if (this._board[oy][ox] == null){
                 return false;
             }
@@ -272,14 +275,16 @@ module Lines{
             var ballsToRemove : Point[] = [{x:ox, y:oy}];
             for(var dirI in directions){
                 var dir = directions[dirI];
-                // move each direction forward and backward and accumulate balls of the same color;
+                // accumulate balls of the same color;
                 var ballsInDirection: Point[] = [];
+                // ...moving 'forward'...
                 var x = ox+dir.x; var y = oy+dir.y;
                 while (y>=0 && y < this.size && x>=0&&x<=this.size && 
                         this._board[y][x] != null && this._board[y][x].color == color){
                     ballsInDirection.push({x:x, y:y});
                     x += dir.x; y+=dir.y;
                 }
+                // ...and backward.
                 var x = ox-dir.x; var y = oy-dir.y;
                 while (y>=0 && y < this.size && x>=0&&x<=this.size && 
                         this._board[y][x] != null && this._board[y][x].color == color){
@@ -295,7 +300,12 @@ module Lines{
                     var ball = ballsToRemove[i];
                     this._board[ball.y][ball.x] = null;
                 }
+                if (this.BallsRemoved){
+                    this.BallsRemoved(ballsToRemove.length);
+                }
+                return true;
             }
+            return false;
         }
 
         private onCellClickImpl(x,y) {}
@@ -323,7 +333,13 @@ module Lines{
         var ctx = <CanvasRenderingContext2D>canvas.getContext("2d");
         ctx.translate(0.5, 0.5);
 
-        var board = new Board(10);
+        var board = new Board(CELL_COUNT);
+        var score: number = 0;
+        var scoreScale = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 ];
+        board.BallsRemoved = (n) => {
+            score += scoreScale[n - MIN_LEN];
+            scoreValue.innerText = score.toString();
+        }
         board.spawnBalls();
 
         var lastUpdateTime = new Date().getMilliseconds();

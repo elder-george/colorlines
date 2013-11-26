@@ -16,8 +16,10 @@ var Lines;
     };
 
     var CELL_SIZE = 40;
+    var CELL_COUNT = 10;
     var RADIUS = (CELL_SIZE / 2) - 2;
     var MIN_LEN = 5;
+    var SPAWN_AFTER_LINE_REMOVAL = false;
 
     var Ball = (function () {
         function Ball(color, radius, x, y) {
@@ -263,11 +265,12 @@ var Lines;
                     i++;
                 } else {
                     _this._board[_this._selected.y][_this._selected.x] = _this._selected.stopBouncing();
-                    _this.checkLines(_this._selected.x, _this._selected.y);
+                    var ballsRemoved = _this.checkLines(_this._selected.x, _this._selected.y);
                     _this._selected = null;
                     _this.update = oldUpdate;
                     _this.onCellClickImpl = _this.selectBall;
-                    _this.spawnBalls();
+                    if (!ballsRemoved || SPAWN_AFTER_LINE_REMOVAL)
+                        _this.spawnBalls();
                 }
             };
         };
@@ -283,8 +286,10 @@ var Lines;
             for (var dirI in directions) {
                 var dir = directions[dirI];
 
-                // move each direction forward and backward and accumulate balls of the same color;
+                // accumulate balls of the same color;
                 var ballsInDirection = [];
+
+                // ...moving 'forward'...
                 var x = ox + dir.x;
                 var y = oy + dir.y;
                 while (y >= 0 && y < this.size && x >= 0 && x <= this.size && this._board[y][x] != null && this._board[y][x].color == color) {
@@ -292,6 +297,8 @@ var Lines;
                     x += dir.x;
                     y += dir.y;
                 }
+
+                // ...and backward.
                 var x = ox - dir.x;
                 var y = oy - dir.y;
                 while (y >= 0 && y < this.size && x >= 0 && x <= this.size && this._board[y][x] != null && this._board[y][x].color == color) {
@@ -308,7 +315,12 @@ var Lines;
                     var ball = ballsToRemove[i];
                     this._board[ball.y][ball.x] = null;
                 }
+                if (this.BallsRemoved) {
+                    this.BallsRemoved(ballsToRemove.length);
+                }
+                return true;
             }
+            return false;
         };
 
         Board.prototype.onCellClickImpl = function (x, y) {
@@ -321,11 +333,29 @@ var Lines;
     })();
 
     function main() {
-        var canvas = document.getElementById("canvas");
+        var container = document.getElementById("container");
+        var canvas = document.createElement("canvas");
+        canvas.width = CELL_SIZE * CELL_COUNT;
+        canvas.height = CELL_SIZE * CELL_COUNT;
+        var scoreContainer = document.createElement("div");
+        var scoreLabel = document.createElement("span");
+        scoreLabel.innerText = "Score: ";
+        var scoreValue = document.createElement("span");
+        scoreContainer.appendChild(scoreLabel);
+        scoreContainer.appendChild(scoreValue);
+        container.appendChild(canvas);
+        container.appendChild(scoreContainer);
+
         var ctx = canvas.getContext("2d");
         ctx.translate(0.5, 0.5);
 
-        var board = new Board(10);
+        var board = new Board(CELL_COUNT);
+        var score = 0;
+        var scoreScale = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+        board.BallsRemoved = function (n) {
+            score += scoreScale[n - MIN_LEN];
+            scoreValue.innerText = score.toString();
+        };
         board.spawnBalls();
 
         var lastUpdateTime = new Date().getMilliseconds();
