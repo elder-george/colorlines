@@ -9,8 +9,10 @@ module Lines{
     }
 
     var CELL_SIZE:number = 40;
+    var CELL_COUNT: number = 10;
     var RADIUS = (CELL_SIZE/2) - 2;
     var MIN_LEN = 5;
+    var SPAWN_AFTER_LINE_REMOVAL = false;
 
     class Ball{
         constructor(public color, public radius: number, public x: number, public y: number){
@@ -304,7 +306,20 @@ module Lines{
     }
 
     export function main(){
-        var canvas = <HTMLCanvasElement>document.getElementById("canvas");
+        var container = document.getElementById("container");
+        var canvas = <HTMLCanvasElement>document.createElement("canvas");
+        canvas.width = CELL_SIZE * CELL_COUNT;
+        canvas.height = CELL_SIZE * CELL_COUNT;
+        var scoreContainer = document.createElement("div");
+        var scoreLabel = document.createElement("span");
+        scoreLabel.innerText = "Score: ";
+        var scoreValue = document.createElement("span");
+        scoreContainer.appendChild(scoreLabel);
+        scoreContainer.appendChild(scoreValue);
+        container.appendChild(canvas);
+        container.appendChild(scoreContainer);
+
+
         var ctx = <CanvasRenderingContext2D>canvas.getContext("2d");
         ctx.translate(0.5, 0.5);
 
