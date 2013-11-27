@@ -73,9 +73,68 @@ var Lines;
         return BouncingBall;
     })(Ball);
 
+    var NextBalls = (function () {
+        function NextBalls() {
+            this._balls = [];
+        }
+        NextBalls.prototype.randomColor = function () {
+            var colors = [];
+            for (var i in Color) {
+                colors.push(i);
+            }
+
+            return colors[Math.floor(Math.random() * colors.length)];
+        };
+
+        NextBalls.prototype.spawnBalls = function () {
+            for (var i = 0; i < 3; i++) {
+                this._balls.push(new Ball(this.randomColor(), RADIUS, i, 0));
+            }
+        };
+
+        NextBalls.prototype.render = function (ctx) {
+            for (var i = 0; i < this._balls.length; i++) {
+                if (this._balls[i] != null) {
+                    ctx.save();
+                    this._balls[i].render(ctx);
+                    ctx.restore();
+                }
+            }
+        };
+
+        NextBalls.prototype.renderBackground = function (ctx) {
+            ctx.fillStyle = "rgb(200,200,200)";
+            ctx.fillRect(0, 0, 400, 400);
+            ctx.strokeStyle = 'rgb(100,100,100,100)';
+            ctx.shadowBlur = 5;
+            ctx.shadowColor = 'rgb(150,150,150)';
+            ctx.beginPath();
+            for (var i = 0; i <= 3; i++) {
+                ctx.moveTo(i * CELL_SIZE, 0);
+                ctx.lineTo(i * CELL_SIZE, CELL_SIZE * 1);
+                ctx.stroke();
+            }
+            for (var i = 0; i <= 1; i++) {
+                ctx.moveTo(0, i * CELL_SIZE);
+                ctx.lineTo(CELL_SIZE * 3, i * CELL_SIZE);
+                ctx.stroke();
+            }
+        };
+
+        NextBalls.prototype.takeBalls = function () {
+            var result = this._balls;
+            this._balls = [];
+            this.spawnBalls();
+
+            return result;
+        };
+        return NextBalls;
+    })();
+
     var Board = (function () {
-        function Board(size) {
+        function Board(size, _nextBalls) {
             this.size = size;
+            this._nextBalls = _nextBalls;
             this._board = [];
             for (var i = 0; i < size; i++) {
                 var row = [];
@@ -87,16 +146,8 @@ var Lines;
 
             this.onCellClickImpl = this.selectBall;
         }
-        Board.prototype.randomColor = function () {
-            var colors = [];
-            for (var i in Color) {
-                colors.push(i);
-            }
-
-            return colors[Math.floor(Math.random() * colors.length)];
-        };
-
         Board.prototype.spawnBalls = function () {
+            var next = this._nextBalls.takeBalls();
             for (var i = 0; i < 3; i++) {
                 var freeCells = this.getFreeCells();
                 if (freeCells.length < 1) {
@@ -109,7 +160,10 @@ var Lines;
                 }
                 var idx = Math.floor(Math.random() * freeCells.length);
                 var coord = freeCells[idx];
-                this._board[coord.y][coord.x] = new Ball(this.randomColor(), RADIUS, coord.x, coord.y);
+                var ball = next.shift();
+                ball.x = coord.x;
+                ball.y = coord.y;
+                this._board[coord.y][coord.x] = ball;
                 this.checkLines(coord.x, coord.y);
             }
         };
@@ -348,12 +402,24 @@ var Lines;
         var canvas = document.createElement("canvas");
         canvas.width = CELL_SIZE * CELL_COUNT;
         canvas.height = CELL_SIZE * CELL_COUNT;
+        canvas.className += "at-center";
+
+        var nextContainer = document.createElement("div");
+        var nextPreview = document.createElement("canvas");
+        nextPreview.width = CELL_SIZE * 3;
+        nextPreview.height = CELL_SIZE;
+        nextContainer.appendChild(nextPreview);
+        nextPreview.className += "at-center";
+
         var scoreContainer = document.createElement("div");
         var scoreLabel = document.createElement("span");
         scoreLabel.innerText = "Score: ";
         var scoreValue = document.createElement("span");
         scoreContainer.appendChild(scoreLabel);
         scoreContainer.appendChild(scoreValue);
+        scoreContainer.className += "at-center";
+
+        container.appendChild(nextContainer);
         container.appendChild(canvas);
         container.appendChild(scoreContainer);
 
@@ -363,9 +429,12 @@ var Lines;
         var bufCtx = backbuffer.getContext("2d");
         bufCtx.translate(-0.5, -0.5);
 
-        var ctx = canvas.getContext("2d");
+        var nextBalls = new NextBalls();
+        nextBalls.spawnBalls();
+        var nextCtx = nextPreview.getContext("2d");
+        nextCtx.translate(0.5, 0.5);
 
-        var board = new Board(CELL_COUNT);
+        var board = new Board(CELL_COUNT, nextBalls);
         board.renderBackground(bufCtx);
         var score = 0;
         var scoreScale = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
@@ -375,12 +444,15 @@ var Lines;
         };
         board.spawnBalls();
 
+        var ctx = canvas.getContext("2d");
         var lastUpdateTime = new Date().getMilliseconds();
         function step(timestamp) {
             if (timestamp - lastUpdateTime > 40) {
                 board.update();
                 lastUpdateTime = timestamp;
             }
+            nextBalls.renderBackground(nextCtx);
+            nextBalls.render(nextCtx);
 
             ctx.drawImage(backbuffer, 0, 0);
             board.render(ctx);
