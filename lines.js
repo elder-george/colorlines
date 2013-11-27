@@ -17,7 +17,7 @@ var Lines;
 
     var CELL_SIZE = 40;
     var CELL_COUNT = 10;
-    var RADIUS = (CELL_SIZE / 2) - 2;
+    var RADIUS = (CELL_SIZE / 2) - 3;
     var MIN_LEN = 5;
     var SPAWN_AFTER_LINE_REMOVAL = false;
 
@@ -32,9 +32,16 @@ var Lines;
         };
 
         Ball.prototype.render = function (ctx) {
+            ctx.translate((this.x + 0.5) * CELL_SIZE, (this.y + 0.5) * CELL_SIZE);
             ctx.beginPath();
-            ctx.arc((this.x + 0.5) * CELL_SIZE, (this.y + 0.5) * CELL_SIZE, this.radius, 0, Math.PI * 2);
+            ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
             ctx.fillStyle = this.color;
+            ctx.fill();
+            ctx.closePath();
+            ctx.beginPath();
+            ctx.scale(2, 1);
+            ctx.arc(0, -8, this.radius / 4, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
             ctx.fill();
             ctx.closePath();
         };
@@ -56,11 +63,8 @@ var Lines;
         };
 
         BouncingBall.prototype.render = function (ctx) {
-            ctx.beginPath();
-            ctx.arc((this.x + 0.5) * CELL_SIZE, (this.y + 0.5) * CELL_SIZE + Math.sin(this._phase), this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = this.color;
-            ctx.fill();
-            ctx.closePath();
+            ctx.translate(0, 2 * Math.sin(this._phase));
+            _super.prototype.render.call(this, ctx);
         };
 
         BouncingBall.prototype.stopBouncing = function () {
@@ -81,7 +85,6 @@ var Lines;
                 this._board[i] = row;
             }
 
-            //this._board[0][0] = new Ball(Color.red, 18, 0, 0);
             this.onCellClickImpl = this.selectBall;
         }
         Board.prototype.randomColor = function () {
@@ -149,7 +152,9 @@ var Lines;
             for (var i = 0; i < this.size; i++) {
                 for (var j = 0; j < this.size; j++) {
                     if (this._board[i][j] != null) {
+                        ctx.save();
                         this._board[i][j].render(ctx);
+                        ctx.restore();
                     }
                 }
             }
