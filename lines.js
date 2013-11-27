@@ -135,20 +135,26 @@ var Lines;
                 }
             }
         };
-
-        Board.prototype.render = function (ctx) {
-            ctx.clearRect(0, 0, 400, 400);
+        Board.prototype.renderBackground = function (ctx) {
+            ctx.fillStyle = "rgb(200,200,200)";
+            ctx.fillRect(0, 0, 400, 400);
+            ctx.strokeStyle = 'rgb(100,100,100,100)';
+            ctx.shadowBlur = 5;
+            ctx.shadowColor = 'rgb(150,150,150)';
             ctx.beginPath();
-            for (var i = 1; i < this.size; i++) {
+            for (var i = 0; i <= this.size; i++) {
                 ctx.moveTo(i * CELL_SIZE, 0);
                 ctx.lineTo(i * CELL_SIZE, CELL_SIZE * this.size);
                 ctx.stroke();
             }
-            for (var i = 1; i < this.size; i++) {
+            for (var i = 0; i <= this.size; i++) {
                 ctx.moveTo(0, i * CELL_SIZE);
                 ctx.lineTo(CELL_SIZE * this.size, i * CELL_SIZE);
                 ctx.stroke();
             }
+        };
+
+        Board.prototype.render = function (ctx) {
             for (var i = 0; i < this.size; i++) {
                 for (var j = 0; j < this.size; j++) {
                     if (this._board[i][j] != null) {
@@ -351,10 +357,16 @@ var Lines;
         container.appendChild(canvas);
         container.appendChild(scoreContainer);
 
+        var backbuffer = document.createElement("canvas");
+        backbuffer.width = CELL_SIZE * CELL_COUNT;
+        backbuffer.height = CELL_SIZE * CELL_COUNT;
+        var bufCtx = backbuffer.getContext("2d");
+        bufCtx.translate(-0.5, -0.5);
+
         var ctx = canvas.getContext("2d");
-        ctx.translate(0.5, 0.5);
 
         var board = new Board(CELL_COUNT);
+        board.renderBackground(bufCtx);
         var score = 0;
         var scoreScale = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
         board.BallsRemoved = function (n) {
@@ -370,6 +382,7 @@ var Lines;
                 lastUpdateTime = timestamp;
             }
 
+            ctx.drawImage(backbuffer, 0, 0);
             board.render(ctx);
             window.requestAnimationFrame(step);
         }
